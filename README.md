@@ -31,7 +31,7 @@ pip install -r requirements.txt
 python setup.py develop
 ```
 ## Inference
-Download the weight from this [link](https://pan.baidu.com/s/1x-MjSdaC7dNMNtBrLvkYCA?pwd=ndb9) and put it in the folder of "checkpoints".
+Download the weight from this [link](https://pan.baidu.com/s/1TmG2QJaDM3492jhmJNYmdQ?pwd=884b) and put it in the folder of "checkpoints".
 ```
 python ./inference/inference_VCIF.py
 ```
@@ -44,7 +44,7 @@ LLIE tasks: [LOL](https://github.com/weichen582/RetinexNet)
 
 IVF tasks: [MSRS](https://github.com/Linfeng-Tang/PIAFusion) , [LLVIP](https://github.com/bupt-ai-cz/LLVIP) , [M3FD](https://github.com/JinyuanLiu-CV/TarDAL)
 
-Download the datasets above and place them in the "datasets" folder, organized as follows:
+Download the datasets above and place them in the "datasets" folder, or use the enhanced datasets from this [link](https://pan.baidu.com/s/1QVsXMOqvFV3J3elDjxNoyw?pwd=2yci), organized as follows:
 
 For LLIE training:
 ```bash
