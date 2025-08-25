@@ -1,0 +1,154 @@
+# Modified SRResNet w/o BN from:
+# Photo-Realistic Single Image Super-Resolution Using a Generative Adversarial Network
+
+# ----------- Commands for running
+# ----------- Single GPU with auto_resume
+# PYTHONPATH="./:${PYTHONPATH}"  CUDA_VISIBLE_DEVICES=0 python basicsr/train.py -opt options/train/SRResNet_SRGAN/train_MSRResNet_x4.yml --auto_resume
+
+# general settings
+name: 001_VCIF_3dataset_50k_B6G1_depth1_4scale_MCSE
+model_type: VCIFModel
+scale: 1
+num_gpu: 1  # set num_gpu: 0 for cpu mode
+gpu_id: "0"
+manual_seed: 2024
+
+# dataset and data loader settings
+datasets:
+  train:
+    name: LMM
+    type: IVIFImageDataset
+    dataroot_ve: datasets/train/IVF/vien_patches
+    dataroot_vi: datasets/train/IVF/vi_patches
+    dataroot_ir: datasets/train/IVF/ir_patches
+    meta_info_file: ~
+    filename_tmpl: '{}'
+    io_backend:
+      type: disk
+      # (for lmdb)
+      # type: lmdb
+    color: y
+    gt_size: 256
+    use_hflip: true
+    use_rot: true
+
+    # data loader
+    num_worker_per_gpu: 0
+    batch_size_per_gpu: 1
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+    # pin_memory: true
+  val:
+    name: MSRS
+    type: IVIFImageDataset
+    dataroot_ve: datasets/eval/IVF/visible
+    dataroot_vi: datasets/eval/IVF/visible
+    dataroot_ir: datasets/eval/IVF/infrared
+    io_backend:
+      type: disk
+    color: y
+# network structures
+network_g:
+  type: VCIF
+  # fusion_type: "CBAM"
+  # fusion_type: "SK"
+  fusion_type: "MCSE"
+network_ir:
+  type: backbone
+  source: ir
+network_vi:
+  type: backbone
+  source: vi
+
+
+# path
+path:
+  pretrain_network_g: ~
+  param_key_g: weight
+  strict_load_g: true
+  resume_state: ~
+  pretrain_network_ir: checkpoints/backbone/backbone_for_ir.pkl
+  param_key_ir: weight
+  strict_load_ir: true
+  pretrain_network_vi: checkpoints/backbone/backbone_for_vi.pkl
+  param_key_vi: weight
+  strict_load_vi: true
+  pretrain_network_ema: ~
+
+# training settings
+train:
+  ema_decay: 0
+  optim_g:
+    type: Adam
+    lr: !!float 1e-3
+    weight_decay: 0
+    betas: [0.9, 0.999]
+    # type: AdamW
+    # lr: !!float 1e-3
+    # weight_decay: !!float 1e-4
+    # betas: [0.9, 0.999]
+
+  scheduler:
+    # type: CosineAnnealingRestartCyclicLR
+    # periods: [17000, 34000]
+    # restart_weights: [1, 1]
+    # eta_mins: [0.0003,0.000001]
+    type: ExponentialLR
+    eta_min: !!float 1e-6
+    gamma: 0.99
+
+  total_iter: 50000
+  warmup_iter: -1  # no warm up
+
+  # losses
+  pixel_opt:
+    type: MaxFusionLoss
+    loss_weight: 1.0
+    reduction: mean
+  perceptual_opt:
+    type: MSWSSIMLoss
+    loss_weight: 0.5
+    reduction: mean
+  color_opt:
+    type: ColorLoss
+    loss_weight: 2
+    reduction: mean
+# validation settings
+val:
+  val_freq: !!float 1e4
+  save_img: true
+
+  metrics:
+    sd: # metric name, can be arbitrary
+      type: calculate_sd
+      crop_border: 4
+      test_y_channel: True
+      better: higher  # the higher, the better. Default: higher
+    mi: # metric name, can be arbitrary
+      type: calculate_mi
+      crop_border: 4
+      test_y_channel: True
+      better: higher  # the higher, the better. Default: higher
+    vif: # metric name, can be arbitrary
+      type: calculate_viff
+      crop_border: 4
+      test_y_channel: True
+      better: higher  # the higher, the better. Default: higher
+    # niqe:
+    #   type: calculate_niqe
+    #   crop_border: 4
+    #   better: lower  # the lower, the better
+
+# logging settings
+logger:
+  print_freq: 10
+  save_checkpoint_freq: !!float 5e3
+  use_tb_logger: true
+  wandb:
+    project: ~
+    resume_id: ~
+
+# dist training settings
+dist_params:
+  backend: nccl
+  port: 29500
