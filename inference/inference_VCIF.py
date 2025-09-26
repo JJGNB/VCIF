@@ -22,14 +22,19 @@ if not os.path.exists(save_path):
 Test_Image_Number=len(os.listdir(test_I_path))
 # print(Test_Image_Number)
 i=0
-class FusionTarget:
-    def __init__(self,ir,vi):
-        self.ir=ir
-        self.vi=vi
-        pass
-    def __call__(self, model_output):
-        loss=(model_output-self.vi).mean()
-        return model_output.mean()
+net1=backbone(source="vi").to("cuda")
+net2=backbone(source="ir").to("cuda")
+jnet=VCIF(net1,net2,fusion_type="MCSE").to("cuda")
+net1.load_state_dict(
+        torch.load(os.path.join(weight_save_path, "backbone/backbone_for_vi.pkl"),
+                   map_location="cuda:0")['weight'])
+net1.eval()
+net2.load_state_dict(
+        torch.load(os.path.join(weight_save_path, "backbone/backbone_for_ir.pkl"))[
+            'weight'])
+net2.eval()
+jnet.load_state_dict(torch.load(os.path.join(weight_save_path, "net_g_latest.pth"))['params'])
+jnet.eval()
 for file_name in os.listdir(test_I_path):
     i += 1
     Test_IR = Image.open(os.path.join(test_I_path, file_name))
@@ -54,19 +59,6 @@ for file_name in os.listdir(test_I_path):
     img_test1=img_test1.unsqueeze(0)
     img_test2 = img_test2.unsqueeze(0)
     img_he=Test_HE.unsqueeze(0)
-    net1=backbone(source="vi").to("cuda")
-    net2=backbone(source="ir").to("cuda")
-    jnet=VCIF(net1,net2,fusion_type="MCSE").to("cuda")
-    net1.load_state_dict(
-            torch.load(os.path.join(weight_save_path, "backbone/backbone_for_vi.pkl"),
-                       map_location="cuda:0")['weight'])
-    net1.eval()
-    net2.load_state_dict(
-            torch.load(os.path.join(weight_save_path, "backbone/backbone_for_ir.pkl"))[
-                'weight'])
-    net2.eval()
-    jnet.load_state_dict(torch.load(os.path.join(weight_save_path, "net_g_latest.pth"))['params'])
-    jnet.eval()
     img_test1 = img_test1.cuda()
     img_test2 = img_test2.cuda()
     target_layer=jnet.se_sub[0]
